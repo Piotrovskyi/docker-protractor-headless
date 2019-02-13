@@ -1,22 +1,33 @@
-FROM node:8.11.4
-MAINTAINER yevhen.piotrovskyi@gmail.com
+FROM node:dubnium
+
 WORKDIR /tmp
-COPY webdriver-versions.js ./
-ENV CHROME_PACKAGE="google-chrome-stable_59.0.3071.115-1_amd64.deb" NODE_PATH=/usr/local/lib/node_modules:/protractor/node_modules
-RUN npm install -g minimist@1.2.0 && \
-    node ./webdriver-versions.js --chromedriver 2.32 && \
-    webdriver-manager update && \
-    echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y xvfb wget sudo && \
-    apt-get install -y -t jessie-backports openjdk-8-jre && \
-    wget https://github.com/webnicer/chrome-downloads/raw/master/x64.deb/${CHROME_PACKAGE} && \
-    dpkg --unpack ${CHROME_PACKAGE} && \
-    apt-get install -f -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* \
-    rm ${CHROME_PACKAGE} && \
-    mkdir /protractor
+ENV CHROME_PACKAGE="google-chrome-stable_72.0.3626.96-1_amd64.deb" NODE_PATH=/usr/local/lib/node_modules:/protractor/node_modules
+RUN npm install -g protractor@5.4.2
+
+# We need wget to set up the PPA and xvfb to have a virtual screen and unzip to install the Chromedriver
+RUN apt-get install -y wget xvfb unzip
+
+# Set up the Chrome PPA
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+RUN echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
+
+# Update the package list and install chrome
+RUN apt-get update -y
+RUN apt-get install -y google-chrome-stable
+
+# Set up Chromedriver Environment variables
+ENV CHROMEDRIVER_VERSION 2.19
+ENV CHROMEDRIVER_DIR /chromedriver
+RUN mkdir $CHROMEDRIVER_DIR
+
+# Download and install Chromedriver
+RUN wget -q --continue -P $CHROMEDRIVER_DIR "http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+RUN unzip $CHROMEDRIVER_DIR/chromedriver* -d $CHROMEDRIVER_DIR
+
+# Put Chromedriver into the PATH
+ENV PATH $CHROMEDRIVER_DIR:$PATH
+
+RUN mkdir /protractor
 COPY protractor.sh /
 COPY environment /etc/sudoers.d/
 # Fix for the issue with Selenium, as described here:
