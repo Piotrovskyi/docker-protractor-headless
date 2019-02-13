@@ -5,7 +5,8 @@ ENV CHROME_PACKAGE="google-chrome-stable_72.0.3626.96-1_amd64.deb" NODE_PATH=/us
 RUN npm install -g protractor@5.4.2
 
 # We need wget to set up the PPA and xvfb to have a virtual screen and unzip to install the Chromedriver
-RUN apt-get install -y wget xvfb unzip
+RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list && \
+    apt-get update && apt-get install -y wget xvfb unzip
 
 # Set up the Chrome PPA
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
